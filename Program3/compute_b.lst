@@ -1,0 +1,217 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/07/18 21:07:57
+compute_b.asm						     Page 1 - 1
+
+
+				.386
+				.MODEL FLAT
+
+				INCLUDE debug.h
+			      C INCLUDE io.h
+			      C ; IO.H -- header file for I/O macros
+			      C ; 32-bit version for flat memory model
+			      C ; R. Detmer   last revised 8/2000
+			      C .NOLIST     ; turn off listing
+			      C .LIST        ; begin listing
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 		
+			      C 
+				INCLUDE float.h
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE sort_points.h
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE io.h
+			      C ; IO.H -- header file for I/O macros
+			      C ; 32-bit version for flat memory model
+			      C ; R. Detmer   last revised 8/2000
+			      C .NOLIST     ; turn off listing
+			      C .LIST        ; begin listing
+			      C 
+
+				PUBLIC b   ;procedure name
+
+ 00000000			.CODE
+
+				;Variables
+ = [ebp+14]			points_array_address EQU [ebp+14]
+ = [ebp+12]			number_of_points EQU [ebp+12]
+ = [ebp+10]			hi EQU [ebp+10]
+ = [ebp+8]			lo EQU [ebp+8]
+ = [ebp-4]			temp_recursive_result_one EQU [ebp-4]
+ = [ebp-8]			temp_recursive_result_two EQU [ebp-8]
+
+ 00000000			b    PROC   NEAR32
+
+ 00000000  55			push ebp
+ 00000001  8B EC		mov ebp, esp
+ 00000003  83 EC 08		sub esp, 8
+ 00000006  53			push ebx
+ 00000007  51			push ecx
+ 00000008  52			push edx
+ 00000009  66| 9C		pushf
+ 0000000B  66| 8B 5D 0A		mov bx, hi
+ 0000000F  66| 8B 4D 08		mov cx, lo
+ 00000013  66| 3B D9		cmp bx, cx
+
+ 00000016  0F 84 00000080	je base ; hi = lo Base Case Found!
+
+ 0000001C  66| 41		inc cx
+ 0000001E  FF 75 0E		pushd points_array_address
+ 00000021  66| FF 75 0C		pushw number_of_points
+ 00000025  66| 53		push bx
+ 00000027  66| 51		push cx
+
+ 00000029  E8 FFFFFFD2		call b
+
+ 0000002E  89 45 FC		mov temp_recursive_result_one, eax
+ 00000031  66| 49		dec cx
+ 00000033  66| 4B		dec bx
+ 00000035  FF 75 0E		pushd points_array_address
+ 00000038  66| FF 75 0C		pushw number_of_points
+ 0000003C  66| 53		push bx
+ 0000003E  66| 51		push cx
+
+ 00000040  E8 FFFFFFBB		call b
+
+ 00000045  89 45 F8		mov temp_recursive_result_two, eax
+ 00000048  D9 45 FC		fld REAL4 PTR temp_recursive_result_one
+ 0000004B  D9 45 F8		fld REAL4 PTR temp_recursive_result_two
+ 0000004E  DE E1		fsubr
+ 00000050  8B 5D 0E		mov ebx, points_array_address
+				;Getting first coordinate 
+ 00000053  B8 00000000		mov eax, 0
+ 00000058  66| 8B 45 0A		mov ax, hi
+ 0000005C  66| 03 C0		add ax, ax
+ 0000005F  66| B9 0004		mov cx, 4
+ 00000063  66| F7 E1		mul cx
+ 00000066  03 D8		add ebx, eax
+ 00000068  8B 03		mov eax, [ebx]
+ 0000006A  89 45 FC		mov temp_recursive_result_one, eax
+ 0000006D  D9 45 FC		fld REAL4 PTR temp_recursive_result_one
+ 00000070  8B 5D 0E		mov ebx, points_array_address
+				;Getting the second coordinate - esentially same process as first
+ 00000073  B8 00000000		mov eax, 0
+ 00000078  66| 8B 45 08		mov ax, lo
+ 0000007C  66| 03 C0		add ax, ax
+ 0000007F  66| B9 0004		mov cx, 4
+ 00000083  66| F7 E1		mul cx
+ 00000086  03 D8		add ebx, eax
+ 00000088  8B 03		mov eax, [ebx]
+ 0000008A  89 45 FC		mov temp_recursive_result_one, eax
+ 0000008D  D9 45 FC		fld REAL4 PTR temp_recursive_result_one
+ 00000090  DE E1		fsubr
+ 00000092  DE F9		fdiv
+ 00000094  D9 5D FC		fstp REAL4 PTR temp_recursive_result_one
+ 00000097  8B 45 FC		mov eax, temp_recursive_result_one
+ 0000009A  EB 1C		jmp done
+
+ 0000009C			base:
+
+ 0000009C  B8 00000000		mov eax, 0
+ 000000A1  66| 8B C1		mov ax, cx
+ 000000A4  66| 03 C0		add ax, ax
+ 000000A7  66| B9 0004		mov cx, 4
+ 000000AB  66| F7 E1		mul cx
+ 000000AE  8B 5D 0E		mov ebx, points_array_address
+ 000000B1  03 D8		add ebx, eax
+ 000000B3  83 C3 04		add ebx, 4
+ 000000B6  8B 03		mov eax, [ebx]
+
+ 000000B8			done:
+
+ 000000B8  66| 9D		popf
+ 000000BA  5A			pop edx
+ 000000BB  59			pop ecx
+ 000000BC  5B			pop ebx
+ 000000BD  8B E5		mov esp, ebp
+ 000000BF  5D			pop ebp
+ 000000C0  C2 000A		ret 10
+
+ 000000C3			b   ENDP
+
+				END
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/07/18 21:07:57
+compute_b.asm						     Symbols 2 - 1
+
+
+
+
+Macros:
+
+                N a m e                 Type
+
+atod . . . . . . . . . . . . . .	Proc
+atof . . . . . . . . . . . . . .	Proc
+atoi . . . . . . . . . . . . . .	Proc
+dtoa . . . . . . . . . . . . . .	Proc
+ftoa . . . . . . . . . . . . . .	Proc
+inputD . . . . . . . . . . . . .	Proc
+inputW . . . . . . . . . . . . .	Proc
+input  . . . . . . . . . . . . .	Proc
+itoa . . . . . . . . . . . . . .	Proc
+outputD  . . . . . . . . . . . .	Proc
+outputW  . . . . . . . . . . . .	Proc
+output . . . . . . . . . . . . .	Proc
+print_points . . . . . . . . . .	Proc
+sort_points  . . . . . . . . . .	Proc
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000010 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000000C3 DWord	  Public  'CODE'	
+
+
+Procedures,  parameters and locals:
+
+                N a m e                 Type     Value    Attr
+
+b  . . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000000C3 Public
+  base . . . . . . . . . . . . .	L Near	 0000009C _TEXT	
+  done . . . . . . . . . . . . .	L Near	 000000B8 _TEXT	
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000000h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+CR . . . . . . . . . . . . . . .	Number	 0000000Dh   
+LF . . . . . . . . . . . . . . .	Number	 0000000Ah   
+atodproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+atof_proc  . . . . . . . . . . .	L Near	 00000000 FLAT	External
+atoiproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+carriage . . . . . . . . . . . .	Byte	 00000000 _DATA	
+dtoaproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+ftoa_proc  . . . . . . . . . . .	L Near	 00000000 FLAT	External
+hi . . . . . . . . . . . . . . .	Text   	 [ebp+10]
+inproc . . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+itoaproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+lo . . . . . . . . . . . . . . .	Text   	 [ebp+8]
+number_of_points . . . . . . . .	Text   	 [ebp+12]
+outproc  . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+points_array_address . . . . . .	Text   	 [ebp+14]
+print_points_proc  . . . . . . .	L Near	 00000000 FLAT	External
+sort_points_proc . . . . . . . .	L Near	 00000000 FLAT	External
+temp_recursive_result_one  . . .	Text   	 [ebp-4]
+temp_recursive_result_two  . . .	Text   	 [ebp-8]
+text . . . . . . . . . . . . . .	Byte	 00000003 _DATA	
+
+	   0 Warnings
+	   0 Errors

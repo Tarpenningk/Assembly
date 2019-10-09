@@ -1,0 +1,205 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/07/18 21:07:57
+interpolate.asm						     Page 1 - 1
+
+
+				.386
+				.MODEL FLAT
+
+				INCLUDE debug.h
+			      C INCLUDE io.h
+			      C ; IO.H -- header file for I/O macros
+			      C ; 32-bit version for flat memory model
+			      C ; R. Detmer   last revised 8/2000
+			      C .NOLIST     ; turn off listing
+			      C .LIST        ; begin listing
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 		
+			      C 
+				INCLUDE float.h
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE sort_points.h
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE io.h
+			      C ; IO.H -- header file for I/O macros
+			      C ; 32-bit version for flat memory model
+			      C ; R. Detmer   last revised 8/2000
+			      C .NOLIST     ; turn off listing
+			      C .LIST        ; begin listing
+			      C 
+
+				PUBLIC interpolate
+
+ = 0000000D			CR EQU 0Dh
+ = 0000000A			LF EQU 0Ah
+
+ 00000000			.CODE
+
+				EXTRN b : NEAR32
+
+				;Variables 
+ = [ebp+16]			interpolated_x EQU [ebp+16]
+ = [ebp+12]			points_array_address EQU [ebp+12]
+ = [ebp+10]			number_of_points EQU [ebp+10]
+ = [ebp+8]			degree EQU [ebp+8]
+ = [ebp-4]			first_result EQU [ebp-4]
+ = [ebp-8]			second_result EQU [ebp-8]
+ = [ebp-12]			x_coordinate EQU [ebp-12]
+ = [ebp-14]			first_counter EQU [ebp-14]
+ = [ebp-16]			second_counter EQU [ebp-16]
+
+ 00000000			interpolate PROC NEAR32
+ 00000000  55			push ebp
+ 00000001  8B EC		mov ebp, esp
+ 00000003  83 EC 10		sub esp, 16
+ 00000006  53			push ebx
+ 00000007  51			push ecx
+ 00000008  52			push edx
+ 00000009  9C			pushfd ; Or pushf? 
+ 0000000A  B8 00000000		mov eax, 0
+ 0000000F  D9 EE		fldz
+ 00000011  D9 5D FC		fstp REAL4 PTR first_result
+ 00000014  66| B9 0000		mov cx, 0
+ 00000018			loopIt:
+ 00000018  66| 3B 4D 08		cmp cx, degree
+ 0000001C  7F 65		jg done
+ 0000001E  FF 75 0C		pushd points_array_address
+ 00000021  66| FF 75 0A		pushw number_of_points
+ 00000025  66| 51		push cx
+ 00000027  66| 6A 00		pushw 0
+ 0000002A  E8 00000000 E	call b
+ 0000002F  89 45 F8		mov second_result, eax
+ 00000032  D9 45 F8		fld REAL4 PTR second_result
+ 00000035  66| BA 0000		mov dx, 0
+ 00000039			loopItIn:
+ 00000039  66| 3B CA		cmp cx, dx
+ 0000003C  74 39		je endLoopItIn
+ 0000003E  66| 89 4D F2		mov first_counter, cx
+ 00000042  66| 89 55 F0		mov second_counter, dx
+ 00000046  8B 5D 0C		mov ebx, points_array_address ;Gets next x_coordinate. X sub 0, x sub 1, ...
+ 00000049  B8 00000000		mov eax, 0
+ 0000004E  66| 8B C2		mov ax, dx
+ 00000051  66| 03 C0		add ax, ax
+ 00000054  66| 03 C0		add ax, ax
+ 00000057  66| 03 C0		add ax, ax
+ 0000005A  03 D8		add ebx, eax
+ 0000005C  8B 03		mov eax, [ebx]
+ 0000005E  89 45 F4		mov x_coordinate, eax
+
+ 00000061  D9 45 F4		fld REAL4 PTR x_coordinate
+ 00000064  D9 45 10		fld REAL4 PTR interpolated_x
+ 00000067  DE E1		fsubr
+ 00000069  DE C9		fmul
+ 0000006B  66| 8B 4D F2		mov cx, first_counter
+ 0000006F  66| 8B 55 F0		mov dx, second_counter
+ 00000073  66| 42		inc dx
+ 00000075  EB C2		jmp loopItIn
+ 00000077			endLoopItIn:
+ 00000077  D9 45 FC		fld REAL4 PTR first_result
+ 0000007A  DE C1		fadd
+ 0000007C  D9 5D FC		fstp REAL4 PTR first_result
+ 0000007F  66| 41		inc cx
+ 00000081  EB 95		jmp loopIt
+ 00000083			done:
+ 00000083  8B 45 FC		mov eax, first_result
+ 00000086  9D			popfd
+ 00000087  5A			pop edx
+ 00000088  59			pop ecx
+ 00000089  5B			pop ebx
+ 0000008A  8B E5		mov esp, ebp
+ 0000008C  5D			pop ebp
+ 0000008D  C2 000C		ret 12
+
+ 00000090			interpolate ENDP
+				END
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/07/18 21:07:57
+interpolate.asm						     Symbols 2 - 1
+
+
+
+
+Macros:
+
+                N a m e                 Type
+
+atod . . . . . . . . . . . . . .	Proc
+atof . . . . . . . . . . . . . .	Proc
+atoi . . . . . . . . . . . . . .	Proc
+dtoa . . . . . . . . . . . . . .	Proc
+ftoa . . . . . . . . . . . . . .	Proc
+inputD . . . . . . . . . . . . .	Proc
+inputW . . . . . . . . . . . . .	Proc
+input  . . . . . . . . . . . . .	Proc
+itoa . . . . . . . . . . . . . .	Proc
+outputD  . . . . . . . . . . . .	Proc
+outputW  . . . . . . . . . . . .	Proc
+output . . . . . . . . . . . . .	Proc
+print_points . . . . . . . . . .	Proc
+sort_points  . . . . . . . . . .	Proc
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000010 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000090 DWord	  Public  'CODE'	
+
+
+Procedures,  parameters and locals:
+
+                N a m e                 Type     Value    Attr
+
+interpolate  . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000090 Public
+  loopIt . . . . . . . . . . . .	L Near	 00000018 _TEXT	
+  loopItIn . . . . . . . . . . .	L Near	 00000039 _TEXT	
+  endLoopItIn  . . . . . . . . .	L Near	 00000077 _TEXT	
+  done . . . . . . . . . . . . .	L Near	 00000083 _TEXT	
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000000h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+CR . . . . . . . . . . . . . . .	Number	 0000000Dh   
+LF . . . . . . . . . . . . . . .	Number	 0000000Ah   
+atodproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+atof_proc  . . . . . . . . . . .	L Near	 00000000 FLAT	External
+atoiproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+b  . . . . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+carriage . . . . . . . . . . . .	Byte	 00000000 _DATA	
+degree . . . . . . . . . . . . .	Text   	 [ebp+8]
+dtoaproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+first_counter  . . . . . . . . .	Text   	 [ebp-14]
+first_result . . . . . . . . . .	Text   	 [ebp-4]
+ftoa_proc  . . . . . . . . . . .	L Near	 00000000 FLAT	External
+inproc . . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+interpolated_x . . . . . . . . .	Text   	 [ebp+16]
+itoaproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+number_of_points . . . . . . . .	Text   	 [ebp+10]
+outproc  . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+points_array_address . . . . . .	Text   	 [ebp+12]
+print_points_proc  . . . . . . .	L Near	 00000000 FLAT	External
+second_counter . . . . . . . . .	Text   	 [ebp-16]
+second_result  . . . . . . . . .	Text   	 [ebp-8]
+sort_points_proc . . . . . . . .	L Near	 00000000 FLAT	External
+text . . . . . . . . . . . . . .	Byte	 00000003 _DATA	
+x_coordinate . . . . . . . . . .	Text   	 [ebp-12]
+
+	   0 Warnings
+	   0 Errors

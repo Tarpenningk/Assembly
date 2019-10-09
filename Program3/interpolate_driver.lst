@@ -1,0 +1,281 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/07/18 21:07:57
+interpolate_driver.asm					     Page 1 - 1
+
+
+				.386
+				.MODEL FLAT
+
+				ExitProcess PROTO NEAR32 stdcall, dwExitCode:DWORD
+
+ = 0000000D			CR EQU 0Dh
+ = 0000000A			LF EQU 0Ah
+
+				INCLUDE debug.h
+			      C INCLUDE io.h
+			      C ; IO.H -- header file for I/O macros
+			      C ; 32-bit version for flat memory model
+			      C ; R. Detmer   last revised 8/2000
+			      C .NOLIST     ; turn off listing
+			      C .LIST        ; begin listing
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 		
+			      C 
+				INCLUDE float.h
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE sort_points.h
+			      C .NOLIST
+			      C .LIST
+			      C 
+				INCLUDE io.h
+			      C ; IO.H -- header file for I/O macros
+			      C ; 32-bit version for flat memory model
+			      C ; R. Detmer   last revised 8/2000
+			      C .NOLIST     ; turn off listing
+			      C .LIST        ; begin listing
+			      C 
+
+ = 00000014			MAX_NUM_POINTS EQU 20 ;Said won't be given more than 20 points 
+
+				.STACK 4096
+
+ 00000010			.DATA
+
+ 00000010  00000028 [		points_array DWORD 2*MAX_NUM_POINTS DUP (?) ;Array of points
+	    00000000
+	   ]
+ 000000B0 00000000		result DWORD ?
+
+ 000000B4 00000000		x_val REAL4 ?
+ 000000B8 3727C5AC		Tolerance REAL4 0.00001
+
+ 000000BC 0000			num_items_in_array WORD ?
+ 000000BE 0000			degree WORD ?
+
+				;Asks for variables
+ 000000C0 45 6E 74 65 72	prompt1 BYTE "Enter the x-coordinate of the desired interpolated y.", 0
+	   20 74 68 65 20
+	   78 2D 63 6F 6F
+	   72 64 69 6E 61
+	   74 65 20 6F 66
+	   20 74 68 65 20
+	   64 65 73 69 72
+	   65 64 20 69 6E
+	   74 65 72 70 6F
+	   6C 61 74 65 64
+	   20 79 2E 00
+ 000000F6 45 6E 74 65 72	prompt2 BYTE "Enter the degree of the interpolating polynomial.", 0
+	   20 74 68 65 20
+	   64 65 67 72 65
+	   65 20 6F 66 20
+	   74 68 65 20 69
+	   6E 74 65 72 70
+	   6F 6C 61 74 69
+	   6E 67 20 70 6F
+	   6C 79 6E 6F 6D
+	   69 61 6C 2E 00
+
+				;Instructions 
+ 00000128 59 6F 75 20 6D	prompt3 BYTE "You may enter up to 20 points, one at a time.", CR, LF
+	   61 79 20 65 6E
+	   74 65 72 20 75
+	   70 20 74 6F 20
+	   32 30 20 70 6F
+	   69 6E 74 73 2C
+	   20 6F 6E 65 20
+	   61 74 20 61 20
+	   74 69 6D 65 2E
+	   0D 0A
+ 00000157 49 6E 70 75 74	prompt4 BYTE "Input q to quit", 0
+	   20 71 20 74 6F
+	   20 71 75 69 74
+	   00
+
+				;Result
+ 00000167 54 68 65 20 72	result_prompt BYTE "The result is:", 0
+	   65 73 75 6C 74
+	   20 69 73 3A 00
+ 00000000			.CODE
+
+				EXTRN interpolate : NEAR32 ;Check interpolate.asm 
+
+				;Code Starts Here
+
+ 00000000			_start:
+ 00000000
+				output prompt1 ;Asks for x_coor of desired y
+				output carriage 
+				input text, 8 ;Double-check this is correct number. Tried: 10
+				output text
+				output carriage
+				;first part done
+				atof text, x_val ;Converts the text to a float and stores it into x_val
+				output prompt2 ;Asks for degree 
+				output carriage
+				input text, 8
+				output text
+				output carriage
+				;second part done
+				atoi text
+ 000000BA  66| A3		mov degree, ax
+	   000000BE R
+				output prompt3 ; Shows first half of directions
+				output carriage
+				output prompt4 ; Second half of directions
+				output carriage
+ 000000F8  66| C7 05		mov num_items_in_array, 0
+	   000000BC R
+	   0000
+ 00000101  8D 1D 00000010 R	lea ebx, points_array
+
+ 00000107			repeatIt:
+ 00000107  66| 83 3D		cmp num_items_in_array, MAX_NUM_POINTS
+	   000000BC R 14
+ 0000010F  0F 83 000000B1	jae endRepeatIt
+				input text, 8
+				output text
+				output carriage
+ 00000145  80 3D 00000003 R	cmp text, "q" ; Repeat until q is entered, can do it directly
+	   71
+ 0000014C  74 78		je endRepeatIt
+				atof text, result
+ 00000162  A1 000000B0 R	mov eax, result
+ 00000167  89 03		mov DWORD PTR [ebx], eax ;Stores result into the array
+ 00000169  83 C3 04		add ebx, 4; Moves to next location in the array
+				input text, 8
+				output text
+				output carriage
+				atof text, result
+ 000001B0  A1 000000B0 R	mov eax, result
+ 000001B5  89 03		mov DWORD PTR [ebx], eax
+ 000001B7  66| FF 05		inc num_items_in_array ;Coefficients were entered, increase number of elements in array
+	   000000BC R
+ 000001BE  83 C3 04		add ebx, 4 ;Moves to next location in the array
+
+ 000001C1  E9 FFFFFF41		jmp repeatIt ;q hasn't been entered, time to put in more elements!
+
+ 000001C6			endRepeatIt:
+
+				sort_points points_array, x_val, Tolerance, num_items_in_array ;sort_points was given to us, look for it in include if need be
+				output carriage
+				print_points points_array, num_items_in_array ;print_points is in sort_points.h
+				output carriage
+ 00000218  8D 1D 00000010 R	lea ebx, points_array
+ 0000021E  FF 35 000000B4 R	push x_val
+ 00000224  53			push ebx
+ 00000225  66| FF 35		push num_items_in_array
+	   000000BC R
+ 0000022C  66| FF 35		push degree
+	   000000BE R
+
+ 00000233  E8 00000000 E	call interpolate ; interpolate.asm
+
+				output result_prompt
+ 00000246  A3 000000B0 R	mov result, eax
+				ftoa result, WORD PTR 5, WORD PTR 8, text
+				output text
+				output carriage
+				output carriage
+
+ 00000291			done:
+
+				INVOKE ExitProcess, 0
+ 00000298			PUBLIC _start
+				END
+Microsoft (R) Macro Assembler Version 6.15.8803		    11/07/18 21:07:57
+interpolate_driver.asm					     Symbols 2 - 1
+
+
+
+
+Macros:
+
+                N a m e                 Type
+
+atod . . . . . . . . . . . . . .	Proc
+atof . . . . . . . . . . . . . .	Proc
+atoi . . . . . . . . . . . . . .	Proc
+dtoa . . . . . . . . . . . . . .	Proc
+ftoa . . . . . . . . . . . . . .	Proc
+inputD . . . . . . . . . . . . .	Proc
+inputW . . . . . . . . . . . . .	Proc
+input  . . . . . . . . . . . . .	Proc
+itoa . . . . . . . . . . . . . .	Proc
+outputD  . . . . . . . . . . . .	Proc
+outputW  . . . . . . . . . . . .	Proc
+output . . . . . . . . . . . . .	Proc
+print_points . . . . . . . . . .	Proc
+sort_points  . . . . . . . . . .	Proc
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000176 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000298 DWord	  Public  'CODE'	
+
+
+Procedures,  parameters and locals:
+
+                N a m e                 Type     Value    Attr
+
+$$$00001 . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000298 Private
+  repeatIt . . . . . . . . . . .	L Near	 00000107 _TEXT	
+  endRepeatIt  . . . . . . . . .	L Near	 000001C6 _TEXT	
+  done . . . . . . . . . . . . .	L Near	 00000291 _TEXT	
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000000h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+CR . . . . . . . . . . . . . . .	Number	 0000000Dh   
+LF . . . . . . . . . . . . . . .	Number	 0000000Ah   
+MAX_NUM_POINTS . . . . . . . . .	Number	 00000014h   
+Tolerance  . . . . . . . . . . .	DWord	 000000B8 _DATA	
+_start . . . . . . . . . . . . .	L Near	 00000000 _TEXT	Public
+atodproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+atof_proc  . . . . . . . . . . .	L Near	 00000000 FLAT	External
+atoiproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+carriage . . . . . . . . . . . .	Byte	 00000000 _DATA	
+degree . . . . . . . . . . . . .	Word	 000000BE _DATA	
+done . . . . . . . . . . . . . .	L Near	 00000291 _TEXT	
+dtoaproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+endRepeatIt  . . . . . . . . . .	L Near	 000001C6 _TEXT	
+ftoa_proc  . . . . . . . . . . .	L Near	 00000000 FLAT	External
+inproc . . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+interpolate  . . . . . . . . . .	L Near	 00000000 FLAT	External
+itoaproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+num_items_in_array . . . . . . .	Word	 000000BC _DATA	
+outproc  . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+points_array . . . . . . . . . .	DWord	 00000010 _DATA	
+print_points_proc  . . . . . . .	L Near	 00000000 FLAT	External
+prompt1  . . . . . . . . . . . .	Byte	 000000C0 _DATA	
+prompt2  . . . . . . . . . . . .	Byte	 000000F6 _DATA	
+prompt3  . . . . . . . . . . . .	Byte	 00000128 _DATA	
+prompt4  . . . . . . . . . . . .	Byte	 00000157 _DATA	
+repeatIt . . . . . . . . . . . .	L Near	 00000107 _TEXT	
+result_prompt  . . . . . . . . .	Byte	 00000167 _DATA	
+result . . . . . . . . . . . . .	DWord	 000000B0 _DATA	
+sort_points_proc . . . . . . . .	L Near	 00000000 FLAT	External
+text . . . . . . . . . . . . . .	Byte	 00000003 _DATA	
+x_val  . . . . . . . . . . . . .	DWord	 000000B4 _DATA	
+
+	   0 Warnings
+	   0 Errors
