@@ -1,0 +1,300 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    12/03/18 18:30:42
+fallout_procs.asm					     Page 1 - 1
+
+
+				.386
+				.MODEL FLAT
+				;Includes
+				INCLUDE str_utils.h
+			      C .NOLIST
+			      C .LIST
+			      C 
+				;Links everything up
+				PUBLIC fallouthacking_proc
+
+				;Macros
+
+				swapIt MACRO first_string, second_string
+				push first_string
+				push second_string
+				;Line: 
+				call swap_proc
+				ENDM
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+				getAddressOfArray MACRO offset, length, index
+				push offset
+				push length
+				push index
+				;Line:
+				call getThoseAddresses
+				ENDM
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+				numberOfMatches MACRO first_string, second_string
+				push first_string
+				push second_string
+				;Line:
+				call characterMatching
+				ENDM
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 00000000			.CODE
+
+				;EQUs 
+ = [ebp + 16]			address_of_all_passwords EQU [ebp + 16]
+ = [ebp + 14]			num_characters_in_passwordof_password EQU [ebp + 14]
+ = [ebp + 12]			number_of_passwords EQU [ebp + 12]
+ = [ebp + 10]			index_check EQU [ebp + 10]
+ = [ebp + 8]			number_of_matches_needed EQU [ebp + 8]
+ = [ebp - 4]			current_string_address EQU [ebp - 4]
+ = [ebp - 8]			compare_string_address EQU [ebp - 8] 
+ = [ebp - 12]			final_string_address EQU [ebp - 12] 
+
+ 00000000			fallouthacking_proc PROC NEAR32
+ 00000000  55			push   ebp               
+ 00000001  8B EC		mov    ebp, esp    
+ 00000003  83 EC 0C		sub    esp, 12
+ 00000006  57			push   edi              
+ 00000007  56			push   esi
+ 00000008  51			push   ecx
+ 00000009  52			push   edx
+ 0000000A  66| 9C		pushf
+				getAddressOfArray address_of_all_passwords, WORD PTR num_characters_in_passwordof_password, WORD PTR index_check
+ 0000001C  89 45 F8		mov compare_string_address, eax
+				getAddressOfArray address_of_all_passwords, WORD PTR num_characters_in_passwordof_password, WORD PTR number_of_passwords
+ 0000002F  89 45 F4		mov final_string_address, eax
+ 00000032  8B 4D F8		mov ecx, compare_string_address
+ 00000035  8B D1		mov edx, ecx
+ 00000037  8B 45 F4		mov eax, final_string_address
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 0000003A			whileNeedingToSwap:
+ 0000003A  3B D0		cmp edx, eax
+ 0000003C  74 11		je doneSwapping
+ 0000003E  66| 03 55 0E		add dx, WORD PTR num_characters_in_passwordof_password
+				swapIt edx, ecx
+ 00000049  66| 03 4D 0E		add cx, WORD PTR num_characters_in_passwordof_password
+ 0000004D  EB EB		jmp whileNeedingToSwap
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 0000004F			doneSwapping:
+ 0000004F  B9 00000000		mov ecx, 0
+ 00000054  BA 00000001		mov edx, 1
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 00000059			whileGoingThroughStrings:
+ 00000059  66| 3B 55 0C		cmp dx, number_of_passwords
+ 0000005D  74 44		je endWhileGoingThroughStrings
+				getAddressOfArray address_of_all_passwords, WORD PTR num_characters_in_passwordof_password, dx
+ 0000006D  89 45 FC		mov current_string_address, eax
+				numberOfMatches current_string_address, final_string_address
+ 0000007B  66| 3B 45 08		cmp ax, number_of_matches_needed
+ 0000007F  75 1E		jne matchNotFound
+ 00000081  66| 41		inc cx
+				getAddressOfArray address_of_all_passwords, WORD PTR num_characters_in_passwordof_password, cx
+ 00000091  89 45 F8		mov compare_string_address, eax
+				swapIt current_string_address, compare_string_address
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 0000009F			matchNotFound:
+ 0000009F  66| 42		inc dx
+ 000000A1  EB B6		jmp whileGoingThroughStrings
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;      
+ 000000A3			endWhileGoingThroughStrings:
+ 000000A3  8B C1		mov eax, ecx
+ 000000A5  66| 9D		popf       
+ 000000A7  5A			pop    edx
+ 000000A8  59			pop    ecx           
+ 000000A9  5E			pop    esi
+ 000000AA  5F			pop    edi
+ 000000AB  8B E5		mov    esp, ebp
+ 000000AD  5D			pop    ebp
+ 000000AE  C2 000C		ret    12               
+ 000000B1			fallouthacking_proc     ENDP
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ = [ebp + 12]			test_string_1  EQU [ebp + 12]
+ = [ebp + 8]			test_string_2  EQU [ebp + 8]
+ 000000B1			characterMatching 	PROC NEAR32
+ 000000B1  55			push   ebp                
+ 000000B2  8B EC		mov    ebp, esp           
+ 000000B4  57			push   edi              
+ 000000B5  56			push   esi
+ 000000B6  53			push   ebx
+ 000000B7  51			push   ecx
+ 000000B8  66| 9C		pushf
+ 000000BA  8B 75 0C		mov    esi, test_string_1
+ 000000BD  8B 7D 08		mov    edi, test_string_2
+ 000000C0  FC			cld
+ 000000C1  FF 75 0C		push test_string_1
+ 000000C4  E8 00000000 E	call strlen_proc
+ 000000C9  66| 8B C8		mov cx, ax
+ 000000CC  66| B8 0000		mov ax, 0
+ 000000D0			checkForMatchingCharacters:
+ 000000D0  F2/ A6		repne cmpsb
+ 000000D2  75 02		jnz matchNotFound
+ 000000D4  66| 40		inc ax
+ 000000D6			matchNotFound:
+ 000000D6  66| 83 F9 00		cmp cx, 0
+ 000000DA  75 F4		jne checkForMatchingCharacters
+ 000000DC  66| 9D		popf              
+ 000000DE  59			pop    ecx
+ 000000DF  5B			pop    ebx     
+ 000000E0  5E			pop    esi
+ 000000E1  5F			pop    edi
+ 000000E2  8B E5		mov    esp, ebp
+ 000000E4  5D			pop    ebp
+ 000000E5  C2 0008		ret    8
+ 000000E8			characterMatching     ENDP
+ = [ebp + 12]			address_of_all_passwords     EQU [ebp + 12]
+				;AKA length of string
+ = [ebp + 10]			num_characters_in_password     EQU [ebp + 10]
+ = [ebp + 8]			index_      EQU [ebp + 8]
+ 000000E8			getThoseAddresses     PROC NEAR32
+ 000000E8  55			push   ebp                
+ 000000E9  8B EC		mov    ebp, esp           
+ 000000EB  53			push   ebx
+ 000000EC  52			push   edx ; used in mul
+ 000000ED  66| 9C		pushf
+ 000000EF  B8 00000000		mov eax, 0
+ 000000F4  BB 00000000		mov ebx, 0
+ 000000F9  66| 8B 45 08		mov ax, index_
+ 000000FD  66| 8B 5D 0A		mov bx, num_characters_in_password
+ 00000101  66| 83 E8 01		sub ax, 1
+ 00000105  66| F7 E3		mul bx
+ 00000108  03 45 0C		add eax, address_of_all_passwords
+ 0000010B  66| 9D		popf       
+ 0000010D  5A			pop    edx            
+ 0000010E  5B			pop    ebx
+ 0000010F  8B E5		mov    esp, ebp
+ 00000111  5D			pop    ebp
+ 00000112  C2 0008		ret    8               
+ 00000115			getThoseAddresses     ENDP
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 00000115			swap_proc      PROC    NEAR32
+ = [ebp + 12]			first_string        EQU [ebp + 12]
+ = [ebp + 8]			second_string        EQU [ebp + 8]
+ 00000115			begin:
+ 00000115  55			push	ebp
+ 00000116  8B EC		mov	ebp, esp                    
+ 00000118  50			push    eax		
+ 00000119  51			push    ecx
+ 0000011A  56			push    esi
+ 0000011B  57			push    edi
+ 0000011C  66| 9C		pushf	             
+ 0000011E  FF 75 0C		push first_string
+ 00000121  E8 00000000 E	call strlen_proc
+ 00000126  66| 40		inc  ax
+ 00000128  B9 00000000		mov  ecx, 0
+ 0000012D  66| 8B C8		mov  cx, ax
+ 00000130  8B 75 0C		mov esi, first_string
+ 00000133  8B 7D 08		mov edi, second_string
+ 00000136			swapThem:
+ 00000136  AC			lodsb
+ 00000137  83 EE 01		sub     esi, 1
+ 0000013A  87 F7		xchg    esi, edi
+ 0000013C  A4			movsb
+ 0000013D  87 F7		xchg    esi, edi
+ 0000013F  83 EF 01		sub     edi, 1
+ 00000142  AA			stosb
+ 00000143  E2 F1		loop swapThem
+
+				;can't do end
+ 00000145			end_:
+				;Exit code Time
+ 00000145  66| 9D		popf	                 
+ 00000147  5F				pop edi
+ 00000148  5E				pop esi
+ 00000149  59				pop ecx
+ 0000014A  58				pop eax
+ 0000014B  8B E5			mov esp, ebp	
+ 0000014D  5D			pop	ebp
+
+ 0000014E  C2 0008		ret	8		
+ 00000151			swap_proc    ENDP
+				END
+Microsoft (R) Macro Assembler Version 6.15.8803		    12/03/18 18:30:42
+fallout_procs.asm					     Symbols 2 - 1
+
+
+
+
+Macros:
+
+                N a m e                 Type
+
+append . . . . . . . . . . . . .	Proc
+compare  . . . . . . . . . . . .	Proc
+equals . . . . . . . . . . . . .	Proc
+getAddressOfArray  . . . . . . .	Proc
+index_of . . . . . . . . . . . .	Proc
+numberOfMatches  . . . . . . . .	Proc
+replace  . . . . . . . . . . . .	Proc
+strcopy  . . . . . . . . . . . .	Proc
+strlen . . . . . . . . . . . . .	Proc
+substring  . . . . . . . . . . .	Proc
+swapIt . . . . . . . . . . . . .	Proc
+to_lower . . . . . . . . . . . .	Proc
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+_DATA  . . . . . . . . . . . . .	32 Bit	 00000000 DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000151 DWord	  Public  'CODE'	
+
+
+Procedures,  parameters and locals:
+
+                N a m e                 Type     Value    Attr
+
+characterMatching  . . . . . . .	P Near	 000000B1 _TEXT	Length= 00000037 Public
+  checkForMatchingCharacters . .	L Near	 000000D0 _TEXT	
+  matchNotFound  . . . . . . . .	L Near	 000000D6 _TEXT	
+fallouthacking_proc  . . . . . .	P Near	 00000000 _TEXT	Length= 000000B1 Public
+  whileNeedingToSwap . . . . . .	L Near	 0000003A _TEXT	
+  doneSwapping . . . . . . . . .	L Near	 0000004F _TEXT	
+  whileGoingThroughStrings . . .	L Near	 00000059 _TEXT	
+  matchNotFound  . . . . . . . .	L Near	 0000009F _TEXT	
+  endWhileGoingThroughStrings  .	L Near	 000000A3 _TEXT	
+getThoseAddresses  . . . . . . .	P Near	 000000E8 _TEXT	Length= 0000002D Public
+swap_proc  . . . . . . . . . . .	P Near	 00000115 _TEXT	Length= 0000003C Public
+  begin  . . . . . . . . . . . .	L Near	 00000115 _TEXT	
+  swapThem . . . . . . . . . . .	L Near	 00000136 _TEXT	
+  end_ . . . . . . . . . . . . .	L Near	 00000145 _TEXT	
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000000h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+address_of_all_passwords . . . .	Text   	 [ebp + 12]
+append_proc  . . . . . . . . . .	L Near	 00000000 FLAT	External
+compare_proc . . . . . . . . . .	L Near	 00000000 FLAT	External
+compare_string_address . . . . .	Text   	 [ebp - 8]
+current_string_address . . . . .	Text   	 [ebp - 4]
+equals_proc  . . . . . . . . . .	L Near	 00000000 FLAT	External
+final_string_address . . . . . .	Text   	 [ebp - 12]
+first_string . . . . . . . . . .	Text   	 [ebp + 12]
+index_check  . . . . . . . . . .	Text   	 [ebp + 10]
+index_ . . . . . . . . . . . . .	Text   	 [ebp + 8]
+indexof_proc . . . . . . . . . .	L Near	 00000000 FLAT	External
+num_characters_in_passwordof_password 	Text   	 [ebp + 14]
+num_characters_in_password . . .	Text   	 [ebp + 10]
+number_of_matches_needed . . . .	Text   	 [ebp + 8]
+number_of_passwords  . . . . . .	Text   	 [ebp + 12]
+replace_proc . . . . . . . . . .	L Near	 00000000 FLAT	External
+second_string  . . . . . . . . .	Text   	 [ebp + 8]
+strcopy_proc . . . . . . . . . .	L Near	 00000000 FLAT	External
+strlen_proc  . . . . . . . . . .	L Near	 00000000 FLAT	External
+substring_proc . . . . . . . . .	L Near	 00000000 FLAT	External
+test_string_1  . . . . . . . . .	Text   	 [ebp + 12]
+test_string_2  . . . . . . . . .	Text   	 [ebp + 8]
+tolower_proc . . . . . . . . . .	L Near	 00000000 FLAT	External
+
+	   0 Warnings
+	   0 Errors

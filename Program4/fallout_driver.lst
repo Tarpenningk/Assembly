@@ -1,0 +1,307 @@
+Microsoft (R) Macro Assembler Version 6.15.8803		    12/03/18 18:30:42
+fallout_driver.asm					     Page 1 - 1
+
+
+				.386
+				.MODEL FLAT
+
+				ExitProcess PROTO NEAR32 stdcall, dwExitCode:DWORD
+
+				;Includes
+				INCLUDE debug.h         
+			      C INCLUDE io.h
+			      C ; IO.H -- header file for I/O macros
+			      C ; 32-bit version for flat memory model
+			      C ; R. Detmer   last revised 8/2000
+			      C .NOLIST     ; turn off listing
+			      C .LIST        ; begin listing
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 		
+			      C 
+				INCLUDE fallout.h
+			      C .NOLIST
+			      C .LIST
+			      C 
+				;INCLUDE print_array.h
+
+				;Globals
+				;Told to have these in from assignment.
+				;Maximum number of strings, where one of them is the password
+ = 00000019			MAX_NUM EQU 25
+				;Maximum length of each password string
+ = 0000000E			MAX_LEN EQU 14   
+
+				.STACK  4096
+ 00000010			.DATA                   
+
+				;DWORD Variables
+
+				;WORD Variables
+				;Size for the array
+ 00000010 0000			sz WORD ?                  
+ 00000012 0000			length_of_password_string WORD ?
+				;Keeping track of an index to match the guess with actual password
+ 00000014 0000			array_index_for_string WORD ?
+				;To know if the password is found, this is the character matches in the strings.
+ 00000016 0000			number_of_matches WORD ?
+
+				;BYTE Variables
+ 00000018  00000006 [		size_of_array BYTE   6 DUP (?), 0
+	    00
+	   ] 00
+ 0000001F  0000000E [		temp_string BYTE   MAX_LEN DUP (?)
+	    00
+	   ]
+ 0000002D  0000016C [		array_string BYTE   (MAX_NUM + 1) * MAX_LEN DUP (?)
+	    00
+	   ]
+
+				;Prompt Variables
+ 00000199 45 6E 74 65 72	prompt_for_string BYTE   "Enter a string: ", 0
+	   20 61 20 73 74
+	   72 69 6E 67 3A
+	   20 00
+ 000001AA 45 6E 74 65 72	prompt_for_index BYTE   "Enter the index for the test password (1-based): ", 0
+	   20 74 68 65 20
+	   69 6E 64 65 78
+	   20 66 6F 72 20
+	   74 68 65 20 74
+	   65 73 74 20 70
+	   61 73 73 77 6F
+	   72 64 20 28 31
+	   2D 62 61 73 65
+	   64 29 3A 20 00
+ 000001DC 45 6E 74 65 72	prompt_for_matches BYTE   "Enter the number of exact character matches: ", 0
+	   20 74 68 65 20
+	   6E 75 6D 62 65
+	   72 20 6F 66 20
+	   65 78 61 63 74
+	   20 63 68 61 72
+	   61 63 74 65 72
+	   20 6D 61 74 63
+	   68 65 73 3A 20
+	   00
+ 0000020A 54 68 65 20 6E	prompt_num_strings_entered BYTE   "The number of strings entered is ",0
+	   75 6D 62 65 72
+	   20 6F 66 20 73
+	   74 72 69 6E 67
+	   73 20 65 6E 74
+	   65 72 65 64 20
+	   69 73 20 00
+
+ 00000000			.CODE    
+				;Macros
+				;Can't get including print.h to work
+				printIt MACRO array, size
+				LOCAL loopIt
+				lea ebx, array
+				mov ecx, 0
+				mov cx, size
+				loopIt:
+				output [ebx]
+				output carriage
+				;Moves to next string in the array
+				add ebx, MAX_LEN
+				loop loopIt
+				ENDM
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;                                  
+				fillIt MACRO array, str, index
+				push eax
+				push ecx
+				push edx
+				lea edi, array
+				mov eax, 0
+				mov ax, index
+				mov ecx, MAX_LEN
+				mul ecx
+				add edi, eax
+				lea esi, str
+				mov ecx, MAX_LEN
+				cld
+				rep movsb
+				pop edx
+				pop ecx
+				pop eax
+				ENDM
+				;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+				;Had problems with start_ 
+ 00000000			_start PROC
+ 00000000  66| C7 05		mov length_of_password_string, MAX_LEN
+	   00000012 R
+	   000E
+ 00000009  66| C7 05		mov sz, 0
+	   00000010 R
+	   0000
+ 00000012  8D 1D 0000002D R	lea ebx, array_string
+
+ 00000018			whileLoop:
+ 00000018  66| 83 3D		cmp sz, MAX_NUM
+	   00000010 R 19
+
+ 00000020  0F 83 00000085	jae endWhileLoop
+
+				;Why does this act wierd the second go through?!
+				output prompt_for_string
+				input temp_string, MAX_LEN
+				output temp_string
+				output carriage
+ 00000064  8D 1D 0000001F R	lea ebx, temp_string
+ 0000006A  8A 0B		mov cl, BYTE PTR [ebx]
+				;Have to check if end of inputting strings
+ 0000006C  80 F9 78		cmp cl, "x" 
+				; End loop if x is found
+ 0000006F  74 3A		je endWhileLoop
+
+				fillIt array_string, temp_string, sz
+
+ 0000009F  66| FF 05		inc sz
+	   00000010 R
+ 000000A6  E9 FFFFFF6D		jmp whileLoop
+
+ 000000AB			endWhileLoop:
+				output carriage
+				output prompt_num_strings_entered
+				outputW sz
+				output size_of_array
+				output carriage
+ 00000116  66| 83 3D		cmp sz, 0
+	   00000010 R 00
+ 0000011E  0F 84 0000016B	je done
+
+ 00000124			whileNeedingToLoopStill:
+
+				;Coding convention 
+ 00000124  66| 83 3D		cmp sz, 1
+	   00000010 R 01
+ 0000012C  0F 8E 00000116	jle endWhileNeedingToLoopStill
+
+				printIt array_string, sz
+
+				output prompt_for_index
+				input temp_string, MAX_LEN
+				output temp_string
+				atoi temp_string
+				output carriage
+ 000001AD  66| A3		mov array_index_for_string, ax
+	   00000014 R
+				output prompt_for_matches
+				input temp_string, MAX_LEN
+				output temp_string
+				atoi temp_string
+				output carriage
+ 000001FF  66| A3		mov number_of_matches, ax
+	   00000016 R
+
+				fallouthacking array_string, length_of_password_string, sz, array_index_for_string, number_of_matches
+
+				output carriage
+ 0000023D  66| A3		mov sz, ax
+	   00000010 R
+ 00000243  E9 FFFFFEDC		jmp whileNeedingToLoopStill
+
+ 00000248			endWhileNeedingToLoopStill:
+
+ 00000248  66| 83 3D		cmp sz, 1
+	   00000010 R 01
+ 00000250  75 3D		jne done
+
+				printIt array_string, sz
+				output carriage;
+				;;;;;;;;;;;;;;;;;;;;;;;;;
+ 0000028F			done:
+				INVOKE  ExitProcess, 0
+ 00000296			_start ENDP
+				PUBLIC _start
+				END
+Microsoft (R) Macro Assembler Version 6.15.8803		    12/03/18 18:30:42
+fallout_driver.asm					     Symbols 2 - 1
+
+
+
+
+Macros:
+
+                N a m e                 Type
+
+atod . . . . . . . . . . . . . .	Proc
+atoi . . . . . . . . . . . . . .	Proc
+dtoa . . . . . . . . . . . . . .	Proc
+fallouthacking . . . . . . . . .	Proc
+fillIt . . . . . . . . . . . . .	Proc
+inputD . . . . . . . . . . . . .	Proc
+inputW . . . . . . . . . . . . .	Proc
+input  . . . . . . . . . . . . .	Proc
+itoa . . . . . . . . . . . . . .	Proc
+outputD  . . . . . . . . . . . .	Proc
+outputW  . . . . . . . . . . . .	Proc
+output . . . . . . . . . . . . .	Proc
+printIt  . . . . . . . . . . . .	Proc
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 0000022C DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 00000296 DWord	  Public  'CODE'	
+
+
+Procedures,  parameters and locals:
+
+                N a m e                 Type     Value    Attr
+
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+_start . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000296 Public
+  whileLoop  . . . . . . . . . .	L Near	 00000018 _TEXT	
+  endWhileLoop . . . . . . . . .	L Near	 000000AB _TEXT	
+  whileNeedingToLoopStill  . . .	L Near	 00000124 _TEXT	
+  ??0000 . . . . . . . . . . . .	L Near	 00000144 _TEXT	
+  endWhileNeedingToLoopStill . .	L Near	 00000248 _TEXT	
+  ??0001 . . . . . . . . . . . .	L Near	 00000264 _TEXT	
+  done . . . . . . . . . . . . .	L Near	 0000028F _TEXT	
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000000h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+CR . . . . . . . . . . . . . . .	Number	 0000000Dh   
+LF . . . . . . . . . . . . . . .	Number	 0000000Ah   
+MAX_LEN  . . . . . . . . . . . .	Number	 0000000Eh   
+MAX_NUM  . . . . . . . . . . . .	Number	 00000019h   
+array_index_for_string . . . . .	Word	 00000014 _DATA	
+array_string . . . . . . . . . .	Byte	 0000002D _DATA	
+atodproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+atoiproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+carriage . . . . . . . . . . . .	Byte	 00000000 _DATA	
+dtoaproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+fallouthacking_proc  . . . . . .	L Near	 00000000 FLAT	External
+inproc . . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+itoaproc . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+length_of_password_string  . . .	Word	 00000012 _DATA	
+number_of_matches  . . . . . . .	Word	 00000016 _DATA	
+outproc  . . . . . . . . . . . .	L Near	 00000000 FLAT	External
+prompt_for_index . . . . . . . .	Byte	 000001AA _DATA	
+prompt_for_matches . . . . . . .	Byte	 000001DC _DATA	
+prompt_for_string  . . . . . . .	Byte	 00000199 _DATA	
+prompt_num_strings_entered . . .	Byte	 0000020A _DATA	
+size_of_array  . . . . . . . . .	Byte	 00000018 _DATA	
+sz . . . . . . . . . . . . . . .	Word	 00000010 _DATA	
+temp_string  . . . . . . . . . .	Byte	 0000001F _DATA	
+text . . . . . . . . . . . . . .	Byte	 00000003 _DATA	
+
+	   0 Warnings
+	   0 Errors
